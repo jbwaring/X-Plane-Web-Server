@@ -6,13 +6,53 @@
 //
 
 #import "ViewController.h"
-
+#import "GCDWebServer.h"
+#import "GCDWebServerDataResponse.h"
+#import "XPlaneConnectMain.h"
 @implementation ViewController
+XPlaneConnectMain *xplaneSocket;
+
+- (IBAction)tryToConnectToXPlaneAction:(NSButton *)sender {
+    NSLog(@"User Request Connecting to XPlane...");
+    const char* IP = "127.0.0.1";
+    xplaneSocket = [[XPlaneConnectMain alloc] initwithIP:IP];
+    
+    if([xplaneSocket isConnectedToXPlane]){
+        NSString* xplaneConnectStatusString = @"Success";
+        [_xplaneStatusTextField setStringValue:xplaneConnectStatusString];
+    }else{
+        NSString* xplaneConnectStatusString = @"Failed";
+        [_xplaneStatusTextField setStringValue:xplaneConnectStatusString];
+    }
+}
+
+
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-
-    // Do any additional setup after loading the view.
+    
+    GCDWebServer* webServer = [[GCDWebServer alloc] init];
+    
+    // Add a handler to respond to GET requests on any URL
+    [webServer addDefaultHandlerForMethod:@"GET"
+                             requestClass:[GCDWebServerRequest class]
+                             processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
+        
+        float xplaneScalarResult = [xplaneSocket getDataRefScalarFloat:@"sim/flightmodel/engine/ENGN_N1_" andSize:8 andElement:0];
+        NSLog(@"ENGN N1=%f", xplaneScalarResult);
+        NSMutableDictionary *response = [[NSMutableDictionary alloc] init];
+        [response setValue:@"sim/flightmodel/engine/ENGN_N1_" forKey:@"dref"];
+        [response setValue:[NSNumber numberWithFloat:xplaneScalarResult] forKey:@"value"];
+        return [GCDWebServerDataResponse responseWithJSONObject: response];
+      
+    }];
+    
+    
+    
+    
+    [webServer start];
+    NSString *serverStatusTextFieldNSString = [[NSString alloc] initWithFormat:@"Active at: %@", webServer.serverURL];
+    [_serverStatusTextField setStringValue:serverStatusTextFieldNSString];
 }
 
 

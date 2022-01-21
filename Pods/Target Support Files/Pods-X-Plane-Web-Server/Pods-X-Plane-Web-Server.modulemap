@@ -1,0 +1,6 @@
+framework module Pods_X_Plane_Web_Server {
+  umbrella header "Pods-X-Plane-Web-Server-umbrella.h"
+
+  export *
+  module * { export * }
+}

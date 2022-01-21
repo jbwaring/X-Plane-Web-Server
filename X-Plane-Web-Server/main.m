@@ -7,9 +7,9 @@
 
 #import <Cocoa/Cocoa.h>
 
+
 int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        // Setup code that might create autoreleased objects goes here.
-    }
+    
+    NSLog(@"AERO 490 XPLANE WEB SERVER\n(C) JEAN-BAPTISTE WARING - 2022");
     return NSApplicationMain(argc, argv);
 }
