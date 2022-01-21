@@ -46,24 +46,24 @@ XPlaneConnectMain *xplaneSocket;
                return response;
            }];
     
-    [webServer addHandlerForMethod:@"GET" path:@"/test" requestClass:[GCDWebServerRequest class] processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
+    [webServer addHandlerForMethod:@"GET" path:@"/getDREF" requestClass:[GCDWebServerRequest class] processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
         
+
         
-        
-        
-        
-        
-        float xplaneScalarResult = [xplaneSocket getDataRefScalarFloat:@"sim/flightmodel/engine/ENGN_N1_" andSize:8 andElement:0];
-        NSLog(@"ENGN N1=%f", xplaneScalarResult);
+        NSString *requestedDREF = [[NSString alloc] initWithString:[[request headers] valueForKey:@"X-DREF-VALUE"]];
+        int requestedIndex = [[[request headers] valueForKey:@"X-INDEX-VALUE"] intValue];
+
+        float xplaneScalarResult = [xplaneSocket getDataRefScalarFloat:requestedDREF andSize:8 andElement:requestedIndex];
+        NSLog(@"REQUESTING DREF=%@ at INDEX=%@, GOT=%f", [[request headers] valueForKey:@"X-DREF-VALUE"], [[request headers] valueForKey:@"X-INDEX-VALUE"], xplaneScalarResult);
         NSMutableDictionary *response = [[NSMutableDictionary alloc] init];
-        [response setValue:@"sim/flightmodel/engine/ENGN_N1_" forKey:@"dref"];
+        [response setValue:requestedDREF forKey:@"dref"];
         [response setValue:[NSNumber numberWithFloat:xplaneScalarResult] forKey:@"value"];
         GCDWebServerDataResponse *responseFromXplane = [GCDWebServerDataResponse responseWithJSONObject: response];
         [responseFromXplane setValue:@"*" forAdditionalHeader:@"Access-Control-Allow-Origin"];
         [responseFromXplane setValue:@"X-Requested-With, Content-Type" forAdditionalHeader:@"Access-Control-Allow-Headers"];
         [responseFromXplane setValue:@"GET, POST, OPTIONS" forAdditionalHeader:@"Access-Control-Allow-Methods"];
         responseFromXplane.statusCode = 200;
-        
+
         return responseFromXplane;
       
     }];
@@ -76,7 +76,7 @@ XPlaneConnectMain *xplaneSocket;
 
             GCDWebServerDataResponse *response = [GCDWebServerDataResponse responseWithHTML:@"true"];
             [response setValue:@"*" forAdditionalHeader:@"Access-Control-Allow-Origin"];
-            [response setValue:@"X-Requested-With, Content-Type" forAdditionalHeader:@"Access-Control-Allow-Headers"];
+            [response setValue:@"X-Requested-With, Content-Type, X-INDEX-VALUE, X-DREF-VALUE" forAdditionalHeader:@"Access-Control-Allow-Headers"];
             [response setValue:@"GET, POST, OPTIONS" forAdditionalHeader:@"Access-Control-Allow-Methods"];
             response.statusCode = 200;
             return response;
