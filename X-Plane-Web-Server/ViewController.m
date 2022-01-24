@@ -8,6 +8,8 @@
 #import "ViewController.h"
 #import "GCDWebServer.h"
 #import "GCDWebServerDataResponse.h"
+#import "GCDWebServerMultiPartFormRequest.h"
+#import "GCDWebServerURLEncodedFormRequest.h"
 #import "XPlaneConnectMain.h"
 @implementation ViewController
 XPlaneConnectMain *xplaneSocket;
@@ -46,25 +48,63 @@ XPlaneConnectMain *xplaneSocket;
                return response;
            }];
     
+    
+//    POST MULTIPLE DREFS
+    [webServer addHandlerForMethod:@"POST"
+                              path:@"/getDREFS"
+                      requestClass:[GCDWebServerURLEncodedFormRequest class]
+                      processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
+
+        GCDWebServerURLEncodedFormRequest* httpRequest = (GCDWebServerURLEncodedFormRequest*)request;
+        
+        if([xplaneSocket isConnectedToXPlane]){
+            NSDictionary* result = [xplaneSocket getMultipleDREFS:[httpRequest jsonObject]];
+            
+            GCDWebServerDataResponse *responseFromXplane = [GCDWebServerDataResponse responseWithJSONObject: result];
+           
+            [responseFromXplane setValue:@"*" forAdditionalHeader:@"Access-Control-Allow-Origin"];
+            [responseFromXplane setValue:@"X-Requested-With, Content-Type" forAdditionalHeader:@"Access-Control-Allow-Headers"];
+            [responseFromXplane setValue:@"GET, POST, OPTIONS" forAdditionalHeader:@"Access-Control-Allow-Methods"];
+            responseFromXplane.statusCode = 200;
+            
+            return responseFromXplane;
+        }
+        NSMutableDictionary *response = [[NSMutableDictionary alloc] init];
+        [response setValue:@"NIL" forKey:@"ERROR"];
+        return [GCDWebServerDataResponse responseWithJSONObject:response];
+    }];
     [webServer addHandlerForMethod:@"GET" path:@"/getDREF" requestClass:[GCDWebServerRequest class] processBlock:^GCDWebServerResponse *(GCDWebServerRequest* request) {
         
 
+        @try { //Single DREF FROM HEADER
+            NSString *requestedDREF = [[NSString alloc] initWithString:[[request headers] valueForKey:@"X-DREF-VALUE"]];
+            int requestedIndex = [[[request headers] valueForKey:@"X-INDEX-VALUE"] intValue];
+            float xplaneScalarResult = [xplaneSocket getDataRefScalarFloat:requestedDREF andSize:8 andElement:requestedIndex];
+            NSLog(@"REQUESTING DREF=%@ at INDEX=%@, GOT=%f", [[request headers] valueForKey:@"X-DREF-VALUE"], [[request headers] valueForKey:@"X-INDEX-VALUE"], xplaneScalarResult);
+            NSMutableDictionary *response = [[NSMutableDictionary alloc] init];
+            [response setValue:requestedDREF forKey:@"dref"];
+            [response setValue:[NSNumber numberWithFloat:xplaneScalarResult] forKey:@"value"];
+            GCDWebServerDataResponse *responseFromXplane = [GCDWebServerDataResponse responseWithJSONObject: response];
+            [responseFromXplane setValue:@"*" forAdditionalHeader:@"Access-Control-Allow-Origin"];
+            [responseFromXplane setValue:@"X-Requested-With, Content-Type" forAdditionalHeader:@"Access-Control-Allow-Headers"];
+            [responseFromXplane setValue:@"GET, POST, OPTIONS" forAdditionalHeader:@"Access-Control-Allow-Methods"];
+            responseFromXplane.statusCode = 200;
+            return responseFromXplane;
+            
+        } @catch (NSException *exception) {
+            NSLog(@"%@", exception.description);
+            
+        } @finally {
+            
+        }
         
-        NSString *requestedDREF = [[NSString alloc] initWithString:[[request headers] valueForKey:@"X-DREF-VALUE"]];
-        int requestedIndex = [[[request headers] valueForKey:@"X-INDEX-VALUE"] intValue];
-
-        float xplaneScalarResult = [xplaneSocket getDataRefScalarFloat:requestedDREF andSize:8 andElement:requestedIndex];
-        NSLog(@"REQUESTING DREF=%@ at INDEX=%@, GOT=%f", [[request headers] valueForKey:@"X-DREF-VALUE"], [[request headers] valueForKey:@"X-INDEX-VALUE"], xplaneScalarResult);
         NSMutableDictionary *response = [[NSMutableDictionary alloc] init];
-        [response setValue:requestedDREF forKey:@"dref"];
-        [response setValue:[NSNumber numberWithFloat:xplaneScalarResult] forKey:@"value"];
-        GCDWebServerDataResponse *responseFromXplane = [GCDWebServerDataResponse responseWithJSONObject: response];
-        [responseFromXplane setValue:@"*" forAdditionalHeader:@"Access-Control-Allow-Origin"];
-        [responseFromXplane setValue:@"X-Requested-With, Content-Type" forAdditionalHeader:@"Access-Control-Allow-Headers"];
-        [responseFromXplane setValue:@"GET, POST, OPTIONS" forAdditionalHeader:@"Access-Control-Allow-Methods"];
-        responseFromXplane.statusCode = 200;
+        [response setValue:@"NIL" forKey:@"ERROR"];
+        return [GCDWebServerDataResponse responseWithJSONObject:response];
 
-        return responseFromXplane;
+        
+
+        
       
     }];
 

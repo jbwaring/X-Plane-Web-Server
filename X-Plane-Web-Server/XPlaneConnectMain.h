@@ -22,6 +22,7 @@
 - (id) initwithIP:(const char*)IP ;
 -(BOOL) isConnectedToXPlane;
 -(float)getDataRefScalarFloat:(NSString *)dataRefIdentifier andSize:(int)sizeOfData andElement:(int)elementNo;
+-(NSDictionary*)getMultipleDREFS:(id)jsonObject;
 -(void)sendThrottleCommand:(float)withCommandedThrottle;
 @end
 
